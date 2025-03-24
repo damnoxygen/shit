@@ -1,0 +1,20 @@
+name: Update Code on Phone
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update code on phone
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PHONE_IP }}
+          username: ${{ secrets.PHONE_USERNAME }}
+          password: ${{ secrets.PHONE_PASSWORD }}
+          script: |
+            cd /path/to/your/repo
+            git pull origin main
