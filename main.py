@@ -9,7 +9,7 @@ import sqlite3
 TOKEN = '7663452669:AAHDu1u6bcE8kHk62G_ra8NXCZ-gqYi7K0I'
 bot = telebot.TeleBot(TOKEN, parse_mode='Markdown')
 
-TRIGGER_WORDS = {"тип", "типнуть", "похвала", "похвалить", "типните"}
+TRIGGER_WORDS = {"тип", "типнуть", "похвала", "похвалить", "типайте"}
 
 conn = sqlite3.connect('praise.db', check_same_thread=False)
 cursor = conn.cursor()
