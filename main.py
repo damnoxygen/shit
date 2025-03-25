@@ -14,15 +14,22 @@ TRIGGER_WORDS = {"тип", "типнуть", "похвала", "похвалит
 conn = sqlite3.connect('praise.db', check_same_thread=False)
 cursor = conn.cursor()
 
-
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS praises (
     user_id INTEGER PRIMARY KEY,
     username TEXT,
-    praise_count INTEGER DEFAULT 0
+    praise_count INTEGER DEFAULT 0,
+    shards INTEGER DEFAULT 150
 )
 ''')
 conn.commit()
+
+def add_user_if_not_exists(user_id, username):
+    cursor.execute('SELECT * FROM praises WHERE user_id = ?', (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        cursor.execute('INSERT INTO praises (user_id, username, praise_count, shards) VALUES (?, ?, 0, 150)', (user_id, username))
+        conn.commit()
 
 def add_praise(user_id, username):
     cursor.execute('SELECT * FROM praises WHERE user_id = ?', (user_id,))
@@ -76,6 +83,22 @@ def create_praise_image(praising_user, original_sender):
     except Exception as e:
         print(f"бабах: {e}")
         return None
+
+def update_shards(user_id, amount):
+    cursor.execute('UPDATE praises SET shards = shards + ? WHERE user_id = ?', (amount, user_id))
+    conn.commit()
+
+def get_shards(user_id):
+    cursor.execute('SELECT shards FROM praises WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    return result[0] if result else 0
+
+@bot.message_handler(func=lambda message: True)
+def add_shards_for_message(message):
+    user_id = message.from_user.id
+    username = message.from_user.first_name
+    add_user_if_not_exists(user_id, username)
+    update_shards(user_id, 2)
 
 @bot.message_handler(func=lambda message: message.reply_to_message is not None and message.text.lower() in TRIGGER_WORDS)
 def praise_user(message):
@@ -178,6 +201,54 @@ def show_user_praise_count(message):
 @bot.message_handler(func=lambda message: message.text and message.text.startswith('whatistip'))
 def send_welcome(message):
     bot.reply_to(message, "Карочи в дотке есть такая механика как тип (похвала), она изначально задумывалась как похвала за ахуенную игру, но игроки её юзают как оск. типо чел хуйню сделал и его типают", parse_mode='Markdown')
+
+@bot.message_handler(commands=['shards'])
+def show_user_shards(message):
+    if message.reply_to_message:
+        
+        target_user = message.reply_to_message.from_user
+        user_id = target_user.id
+        username = target_user.first_name
+    else:
+        
+        command_parts = message.text.split(maxsplit=1)
+        if len(command_parts) > 1:
+            target = command_parts[1]
+            if target.startswith('@'):  
+                username = target[1:]  
+                cursor.execute('SELECT user_id, shards FROM praises WHERE username = ?', (username,))
+                result = cursor.fetchone()
+                if result:
+                    user_id, shards = result
+                    user_mention = f"[{username}](tg://user?id={user_id})"
+                    bot.reply_to(message, f"{user_mention} имеет {shards} осколков.", parse_mode='Markdown')
+                else:
+                    bot.reply_to(message, f"Пользователь {target} не найден в базе данных.", parse_mode='Markdown')
+                return
+            elif target.isdigit():
+                user_id = int(target)
+                cursor.execute('SELECT username, shards FROM praises WHERE user_id = ?', (user_id,))
+                result = cursor.fetchone()
+                if result:
+                    username, shards = result
+                    user_mention = f"[{username}](tg://user?id={user_id})"
+                    bot.reply_to(message, f"{user_mention} имеет {shards} осколков.", parse_mode='Markdown')
+                else:
+                    bot.reply_to(message, f"Пользователь с ID {user_id} не найден в базе данных.", parse_mode='Markdown')
+                return
+            else:
+                bot.reply_to(message, "Неверный формат команды. Укажите @username или user-id.", parse_mode='Markdown')
+                return
+        else:
+            user_id = message.from_user.id
+            username = message.from_user.first_name
+
+    shards = get_shards(user_id)
+    user_mention = f"[{username}](tg://user?id={user_id})"
+    if message.reply_to_message or len(command_parts) > 1:
+        bot.reply_to(message, f"у {user_mention} {shards} осколков", parse_mode='Markdown')
+    else:
+        bot.reply_to(message, f"у тебя пидараса {shards} осколков", parse_mode='Markdown')
 
 print("Бот запущен...")
 bot.infinity_polling()
