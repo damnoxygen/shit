@@ -29,6 +29,14 @@ def init_db():
 
 init_db()
 
+def add_new_user(user_id, username):
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (user_id,))
+        if cursor.fetchone() is None:
+            cursor.execute('INSERT INTO users (user_id, username, shards) VALUES (?, ?, ?)', (user_id, username, 150))
+            conn.commit()
+            
 def add_praise(user_id, username):
     cursor.execute('SELECT * FROM praises WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
