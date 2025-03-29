@@ -115,13 +115,36 @@ def praise_user(message):
         bot.reply_to(message, "ты чё ваще страх потерял осёл")
         return
 
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (praising_user.id,))
+        result = cursor.fetchone()
+        praising_user_shards = result[0] if result else 0
+
+    praise_cost = 50
+    if praising_user_shards < praise_cost:
+        missing_shards = praise_cost - praising_user_shards
+        bot.reply_to(message, f"Не хватает {missing_shards} осколков чтобы типнуть")
+        return
+
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET shards = shards - ? WHERE user_id = ?', (praise_cost, praising_user.id))
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (original_sender.id,))
+        result = cursor.fetchone()
+        original_sender_shards = result[0] if result else 0
+        cursor.execute('INSERT OR IGNORE INTO users (user_id, username, shards) VALUES (?, ?, ?)', (original_sender.id, original_sender.first_name, 150))
+        cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (praise_cost, original_sender.id))
+        conn.commit()
+
     praising_mention = f"[{praising_user.first_name}](tg://user?id={praising_user.id})"
     original_mention = f"[{original_sender.first_name}](tg://user?id={original_sender.id})"
 
     caption = f"{praising_mention} *типает* {original_mention}\n\n"
     image = create_praise_image(praising_user, original_sender)
 
-    
     add_praise(original_sender.id, original_sender.first_name)
 
     try:
