@@ -5,6 +5,7 @@ import requests
 from io import BytesIO
 from telebot.apihelper import ApiException
 import sqlite3
+import time
 
 TOKEN = '7663452669:AAHDu1u6bcE8kHk62G_ra8NXCZ-gqYi7K0I'
 bot = telebot.TeleBot(TOKEN, parse_mode='Markdown')
@@ -22,7 +23,8 @@ def init_db():
                 user_id INTEGER PRIMARY KEY,
                 username TEXT,
                 praise_count INTEGER DEFAULT 0,
-                shards INTEGER DEFAULT 150
+                shards INTEGER DEFAULT 150,
+                last_reward_time INTEGER DEFAULT 0
             )
         ''')
         conn.commit()
@@ -51,7 +53,7 @@ def get_praise_count(user_id):
     result = cursor.fetchone()
     return result[0] if result else 0
 
-def add_shards(user_id, username, amount=2):
+def add_shards(user_id, username, amount=0.75):
     with sqlite3.connect('praise.db') as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT shards FROM users WHERE user_id = ?', (user_id,))
@@ -172,6 +174,106 @@ def praise_user(message):
             reply_to_message_id=message.reply_to_message.message_id
         )
 
+@bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('награда'))
+def reward_command(message):
+    user_id = message.from_user.id
+    current_time = int(time.time())  
+
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT last_reward_time FROM users WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+
+        if result:
+            last_reward_time = result[0] if result[0] else 0
+            if current_time - last_reward_time < 21600:
+                remaining_time = 21600 - (current_time - last_reward_time)
+                hours = remaining_time // 3600
+                minutes = (remaining_time % 3600) // 60
+                bot.reply_to(message, f"Ты уже получал награду. Попробуй снова через {hours} часов и {minutes} минут.")
+                return
+        else:
+            cursor.execute('INSERT OR IGNORE INTO users (user_id, username, shards, last_reward_time) VALUES (?, ?, ?, ?)',
+                           (user_id, message.from_user.first_name, 150, 0))
+
+        
+        cursor.execute('UPDATE users SET shards = shards + 500, last_reward_time = ? WHERE user_id = ?', (current_time, user_id))
+        conn.commit()
+
+        bot.send_message(
+            message.chat.id,
+            f"[{message.from_user.first_name}](tg://user?id={user_id}) *залутал свои +500 осколков. Следующая награда через 6 часов*",
+            parse_mode='Markdown'
+    )
+        
+@bot.message_handler(commands=['profilealphabeta'])
+def profile_command(message):
+    user_id = message.from_user.id
+    username = message.from_user.first_name
+
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT praise_count FROM praises WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        praise_count = result[0] if result else 0
+
+    
+    try:
+        
+        background = Image.open("./bg.png").resize((800, 400))
+
+        
+        avatar_url = f"https://api.telegram.org/bot{TOKEN}/getUserProfilePhotos?user_id={user_id}"
+        response = requests.get(avatar_url).json()
+        if response.get('ok') and response.get('result', {}).get('total_count', 0) > 0:
+            photo_file_id = response['result']['photos'][0][0]['file_id']
+            file_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getFile?file_id={photo_file_id}").json()
+            file_path = file_info.get('result', {}).get('file_path')
+            avatar_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
+            avatar_response = requests.get(avatar_url)
+            avatar = Image.open(BytesIO(avatar_response.content)).resize((287, 287))
+            avatar = ImageOps.fit(avatar, (287, 287), centering=(0.5, 0.5))
+            mask = Image.new("L", (287, 287), 0)
+            draw = ImageDraw.Draw(mask)
+            draw.rounded_rectangle((0, 0, 287, 287), radius=32, fill=255)
+            avatar.putalpha(mask)
+            background.paste(avatar, (466, 57), avatar)
+        else:
+            print("Аватарка не найдена, пропускаем.")
+
+        
+        font_name = ImageFont.truetype("Montserrat-SemiBold.ttf", 27)
+        font_praise = ImageFont.truetype("Montserrat-SemiBold.ttf", 29)
+
+        
+        if len(username) > 11:
+            username = username[:11] + ".."
+
+        
+        draw = ImageDraw.Draw(background)
+        draw.text((201, 58), username, font=font_name, fill="white")
+
+        
+        praise_text = str(praise_count)
+        if len(praise_text) > 11:
+            praise_text = praise_text[:11] + "+"
+
+        
+        draw.text((224, 163), praise_text, font=font_praise, fill="white")
+
+        
+        byte_io = BytesIO()
+        background.save(byte_io, format="PNG")
+        byte_io.seek(0)
+
+        
+        bot.send_photo(message.chat.id, byte_io, caption="Твой профиль", reply_to_message_id=message.message_id)
+
+    except Exception as e:
+        print(f"Ошибка при создании профиля: {e}")
+        bot.reply_to(message, "Не удалось создать профиль. Попробуй позже.")
+
 @bot.message_handler(commands=['типы'])
 def show_user_praise_count(message):
     
@@ -226,7 +328,7 @@ def show_user_praise_count(message):
 def send_welcome(message):
     bot.reply_to(message, "Карочи в дотке есть такая механика как тип (похвала), она изначально задумывалась как похвала за ахуенную игру, но игроки её юзают как оск. типо чел хуйню сделал и его типают", parse_mode='Markdown')
 
-@bot.message_handler(commands=['shards'])
+@bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('мои осколки'))
 def get_shards(message):
     user_id = message.from_user.id
     with sqlite3.connect('praise.db') as conn:
@@ -236,79 +338,15 @@ def get_shards(message):
         shards = result[0] if result else 150
     bot.reply_to(message, f"У тебя {shards} осколков")
 
+@bot.message_handler(commands=['patch'])
+def patch_command(message):
+    bot.send_message(message.chat.id, "*Микропатч v1a — незначительные изменения:*\n\n`+ Доля осколков за сообщение уменьшена с 2 до 0.75.`\n`+ Команда /shards -> мои осколки.`\n`+ Добавлена команда \"награда\" которая раз в 6 часов начисляет 500 осколков.`\n`+ Бот добавлен на хостинг`\n`++++ Глобальный патч v1.1 завтра btwbtwbtw`", parse_mode='Markdown')
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
     username = message.from_user.first_name
     add_shards(user_id, username)
-
-@bot.message_handler(commands=['profile'])
-def profile_command(message):
-    user_id = message.from_user.id
-    username = message.from_user.first_name
-
-    # Получаем количество похвал
-    with sqlite3.connect('praise.db') as conn:
-        cursor = conn.cursor()
-        cursor.execute('SELECT praise_count FROM praises WHERE user_id = ?', (user_id,))
-        result = cursor.fetchone()
-        praise_count = result[0] if result else 0
-
-    # Создаем изображение профиля
-    try:
-        # Загружаем фон
-        background = Image.open("./bg.png").resize((800, 400))
-
-        # Загружаем аватарку пользователя
-        avatar_url = f"https://api.telegram.org/bot{TOKEN}/getUserProfilePhotos?user_id={user_id}"
-        response = requests.get(avatar_url).json()
-        if response.get('ok') and response.get('result', {}).get('total_count', 0) > 0:
-            photo_file_id = response['result']['photos'][0][0]['file_id']
-            file_info = requests.get(f"https://api.telegram.org/bot{TOKEN}/getFile?file_id={photo_file_id}").json()
-            file_path = file_info.get('result', {}).get('file_path')
-            avatar_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
-            avatar_response = requests.get(avatar_url)
-            avatar = Image.open(BytesIO(avatar_response.content)).resize((287, 287))
-            avatar = ImageOps.fit(avatar, (287, 287), centering=(0.5, 0.5))
-            mask = Image.new("L", (287, 287), 0)
-            draw = ImageDraw.Draw(mask)
-            draw.rounded_rectangle((0, 0, 287, 287), radius=32, fill=255)
-            avatar.putalpha(mask)
-            background.paste(avatar, (466, 57), avatar)
-        else:
-            print("Аватарка не найдена, пропускаем.")
-
-        # Настраиваем шрифт
-        font_name = ImageFont.truetype("Montserrat-SemiBold.ttf", 27)
-        font_praise = ImageFont.truetype("Montserrat-SemiBold.ttf", 29)
-
-        # Ограничиваем ник до 11 символов
-        if len(username) > 11:
-            username = username[:11] + ".."
-
-        # Рисуем ник
-        draw = ImageDraw.Draw(background)
-        draw.text((201, 58), username, font=font_name, fill="white")
-
-        # Ограничиваем количество похвал до 11 символов
-        praise_text = str(praise_count)
-        if len(praise_text) > 11:
-            praise_text = praise_text[:11] + "+"
-
-        # Рисуем количество похвал
-        draw.text((224, 163), praise_text, font=font_praise, fill="white")
-
-        # Сохраняем изображение в байтовый поток
-        byte_io = BytesIO()
-        background.save(byte_io, format="PNG")
-        byte_io.seek(0)
-
-        # Отправляем изображение
-        bot.send_photo(message.chat.id, byte_io, caption="Твой профиль", reply_to_message_id=message.message_id)
-
-    except Exception as e:
-        print(f"Ошибка при создании профиля: {e}")
-        bot.reply_to(message, "Не удалось создать профиль. Попробуй позже.")
 
 print("Бот запущен...")
 bot.infinity_polling()
