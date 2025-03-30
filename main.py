@@ -43,7 +43,7 @@ def add_new_user(user_id, username):
             conn.commit()
             
 def add_praise(user_id, username):
-    cursor.execute('SELECT * FROM praises WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT * from users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
     if user:
         cursor.execute('UPDATE praises SET praise_count = praise_count + 1 WHERE user_id = ?', (user_id,))
@@ -52,7 +52,7 @@ def add_praise(user_id, username):
     conn.commit()
 
 def get_praise_count(user_id):
-    cursor.execute('SELECT praise_count FROM praises WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT praise_count from users WHERE user_id = ?', (user_id,))
     result = cursor.fetchone()
     return result[0] if result else 0
 
@@ -217,7 +217,7 @@ def profile_command(message):
     
     with sqlite3.connect('praise.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('SELECT praise_count FROM praises WHERE user_id = ?', (user_id,))
+        cursor.execute('SELECT praise_count from users WHERE user_id = ?', (user_id,))
         result = cursor.fetchone()
         praise_count = result[0] if result else 0
 
@@ -291,7 +291,7 @@ def show_user_praise_count(message):
             target = command_parts[1]
             if target.startswith('@'):  
                 username = target[1:]  
-                cursor.execute('SELECT user_id, praise_count FROM praises WHERE username = ?', (username,))
+                cursor.execute('SELECT user_id, praise_count from users WHERE username = ?', (username,))
                 result = cursor.fetchone()
                 if result:
                     user_id, praise_count = result
@@ -302,7 +302,7 @@ def show_user_praise_count(message):
                 return
             elif target.isdigit():  
                 user_id = int(target)
-                cursor.execute('SELECT username, praise_count FROM praises WHERE user_id = ?', (user_id,))
+                cursor.execute('SELECT username, praise_count from users WHERE user_id = ?', (user_id,))
                 result = cursor.fetchone()
                 if result:
                     username, praise_count = result
