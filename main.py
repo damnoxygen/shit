@@ -27,6 +27,9 @@ def init_db():
                 last_reward_time INTEGER DEFAULT 0
             )
         ''')
+        cursor.execute('''
+            ALTER TABLE users ADD COLUMN last_reward_time INTEGER DEFAULT 0
+        ''')
         conn.commit()
 
 init_db()
