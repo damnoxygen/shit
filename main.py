@@ -340,7 +340,7 @@ def get_shards(message):
 
 @bot.message_handler(commands=['patch'])
 def patch_command(message):
-    bot.send_message(message.chat.id, "*Микропатч v1a — незначительные изменения:*\n\n`+ Доля осколков за сообщение уменьшена с 2 до 0.75.`\n`+ Команда /shards -> мои осколки.`\n`+ Добавлена команда \"награда\" которая раз в 6 часов начисляет 500 осколков.`\n`+ Бот добавлен на хостинг`\n`++++ Глобальный патч v1.1 завтра btwbtwbtw`", parse_mode='Markdown')
+    bot.send_message(message.chat.id, "*Микропатч v1a — незначительные изменения:*\n\n`+ Доля осколков за сообщение уменьшена с 2 до 0.75.`\n`+ Команда /shards -> мои осколки.`\n`+ Добавлена команда \"награда\" которая раз в 6 часов начисляет 500 осколков.`\n`+ Бот добавлен на хостинг.`\n`+ Небольшой вайп осколков.`\n`++++ Глобальный патч v1.1 завтра btwbtwbtw.`", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
