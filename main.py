@@ -211,14 +211,14 @@ def profile_command(message):
     user_id = message.from_user.id
     username = message.from_user.first_name
 
-    
     with sqlite3.connect('praise.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('SELECT praise_count from users WHERE user_id = ?', (user_id,))
+        
+        cursor.execute('SELECT praise_count, shards FROM users WHERE user_id = ?', (user_id,))
         result = cursor.fetchone()
         praise_count = result[0] if result else 0
+        shards = result[1] if result else 150  
 
-    
     try:
         
         background = Image.open("./bg.png").resize((800, 400))
@@ -259,26 +259,35 @@ def profile_command(message):
         if len(praise_text) > 11:
             praise_text = praise_text[:11] + "+"
 
-        
-        draw.text((224, 163), praise_text, font=font_praise, fill="white")
+        shards_text = str(shards)
+        if len(shards_text) > 11:
+            shards_text = shards_text[:11] + "+"
 
+        base_x = 407  
+        base_y = 163  
+
+        adjusted_x = base_x - (len(shards_text) * 19)
+
+        draw.text((adjusted_x, base_y), f"{shards_text}", font=font_praise, fill="white")
+
+        base_x2 = 407  
+        base_y2 = 283
+
+        adjusted_x2 = base_x2 - (len(praise_text) * 19)
+        draw.text((adjusted_x2, base_y2), f"{praise_text}", font=font_praise, fill="white")
         
         byte_io = BytesIO()
         background.save(byte_io, format="PNG")
         byte_io.seek(0)
 
-        
         bot.send_photo(message.chat.id, byte_io, caption="Твой профиль", reply_to_message_id=message.message_id)
 
     except Exception as e:
         print(f"Ошибка при создании профиля: {e}")
         bot.reply_to(message, "Не удалось создать профиль. Попробуй позже.")
-
 @bot.message_handler(commands=['типы'])
 def show_user_praise_count(message):
-    
     if message.reply_to_message:
-        
         target_user = message.reply_to_message.from_user
         user_id = target_user.id
         username = target_user.first_name
@@ -316,7 +325,6 @@ def show_user_praise_count(message):
             user_id = message.from_user.id
             username = message.from_user.first_name
 
-    
     praise_count = get_praise_count(user_id)
     user_mention = f"[{username}](tg://user?id={user_id})"
     if message.reply_to_message or len(command_parts) > 1:
