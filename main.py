@@ -43,9 +43,9 @@ def add_praise(user_id, username):
     cursor.execute('SELECT * from users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
     if user:
-        cursor.execute('UPDATE praises SET praise_count = praise_count + 1 WHERE user_id = ?', (user_id,))
+        cursor.execute('UPDATE users SET praise_count = praise_count + 1 WHERE user_id = ?', (user_id,))
     else:
-        cursor.execute('INSERT INTO praises (user_id, username, praise_count) VALUES (?, ?, 1)', (user_id, username))
+        cursor.execute('INSERT INTO users (user_id, username, praise_count) VALUES (?, ?, 1)', (user_id, username))
     conn.commit()
 
 def get_praise_count(user_id):
