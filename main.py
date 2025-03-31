@@ -219,7 +219,7 @@ def reward_command(message):
     
     threading.Thread(target=notify_reward_ready, args=(user_id,)).start()
         
-@bot.message_handler(commands=['testupa'])
+@bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('мой профиль'))
 def profile_command(message):
     user_id = message.from_user.id
     username = message.from_user.first_name
@@ -346,25 +346,16 @@ def show_user_praise_count(message):
         bot.reply_to(message, f"тя типали {praise_count} раз нахуй", parse_mode='Markdown')
 
 
-
-
-
-
-
-
-
-
-
 @bot.message_handler(commands=['patch'])
 def patch_command(message):
-    bot.send_message(message.chat.id, "*Патч v1.1 — крупные изменения:*\n\n`+ Доля осколков за сообщение увеличена с 0.75 до 1.`\n`- Команда \"мои осколки\" удалена.`\n`+ Добавлена команда \"мой профиль\" что заменяет мои осколки.`\n`+ Команде \"награда\" добавлено уведомление в ЛС о откате команды.`\n`+ Добавлены пиздатейшие вставки.`\n`+ Исправлен баг при котором типы не засчитывались`\n\n*Фиспект пидорас ебаный*", parse_mode='Markdown')
+    bot.send_message(message.chat.id, "*Патч v1.1 — крупные изменения:*\n\n`+ Доля осколков за сообщение увеличена с 0.75 до 1.`\n`- Команда \"мои осколки\" удалена.`\n`+ Добавлена команда \"мой профиль\" что заменяет мои осколки.`\n`+ Команде \"награда\" добавлено уведомление в ЛС о откате команды.`\n`+ Добавлены пиздатейшие вставки.`\n`+ Исправлен баг при котором типы не засчитывались`\n`+ Добавлена команда \"отправить\" для отправки осколков.`\n\n*Фиспект пидорас ебаный*", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('отправить'))
 def send_shards(message):
     command_parts = message.text.split(maxsplit=2)
 
     if len(command_parts) < 2 and not message.reply_to_message:
-        bot.reply_to(message, "Укажите пользователя и количество осколков. Пример: отправить @username 50 или ответьте на сообщение с отправить 50")
+        bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
         return
 
     if message.reply_to_message:
@@ -376,7 +367,7 @@ def send_shards(message):
             cursor.execute('SELECT user_id FROM users WHERE username = ?', (username,))
             result = cursor.fetchone()
             if not result:
-                bot.reply_to(message, f"Пользователь {target} не найден в базе данных.")
+                bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
                 return
             target_user_id = result[0]
             target_user = type('User', (object,), {'id': target_user_id, 'first_name': username})()
@@ -385,20 +376,20 @@ def send_shards(message):
             cursor.execute('SELECT user_id, username FROM users WHERE user_id = ?', (target_user_id,))
             result = cursor.fetchone()
             if not result:
-                bot.reply_to(message, f"Пользователь с ID {target_user_id} не найден в базе данных.")
+                bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
                 return
             target_user = type('User', (object,), {'id': target_user_id, 'first_name': result[1]})()
         else:
-            bot.reply_to(message, "Неверный формат команды. Укажите @username или user-id.")
+            bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
             return
 
     try:
         shards_to_send = int(command_parts[-1])
         if shards_to_send <= 0:
-            bot.reply_to(message, "Количество осколков должно быть положительным числом.")
+            bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
             return
     except ValueError:
-        bot.reply_to(message, "Укажите корректное количество осколков.")
+        bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
         return
 
     sender_user = message.from_user
@@ -410,20 +401,23 @@ def send_shards(message):
         sender_shards = result[0] if result else 0
 
     if sender_shards < shards_to_send:
-        bot.reply_to(message, f"У тебя недостаточно осколков. Не хватает {shards_to_send - sender_shards}.")
+        bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
+        bot.reply_to(message, f"Ну тип тобі над ше чуть осколків десь {shards_to_send - sender_shards}.")
         return
 
     with sqlite3.connect('praise.db') as conn:
         cursor = conn.cursor()
         cursor.execute('UPDATE users SET shards = shards - ? WHERE user_id = ?', (shards_to_send, sender_user.id))
         cursor.execute('INSERT OR IGNORE INTO users (user_id, username, shards) VALUES (?, ?, ?)', (target_user.id, target_user.first_name, 150))
+        print(f"DEBUG: Уменьшено {shards_to_send} осколков у пользователя {sender_user.id}")
         cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (shards_to_send, target_user.id))
         conn.commit()
-
+ 
     sender_mention = f"[{sender_user.first_name}](tg://user?id={sender_user.id})"
     target_mention = f"[{target_user.first_name}](tg://user?id={target_user.id})"
 
-    bot.send_message(message.chat.id, f"{sender_mention} -> {target_mention}", parse_mode='Markdown')
+    bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONRBn6ssczW7x7GFCSaIMe9maD-6-UwAC_U0AAjFyGEsuP0FyHmcEFDYE")
+    bot.send_message(message.chat.id, f"{sender_mention} *перевёл* {target_mention} *{shards_to_send} осколкау*", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
