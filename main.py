@@ -467,8 +467,10 @@ def roll_command(message):
         return
 
     try:
-
         
+        user_id = message.from_user.id
+        username = message.from_user.first_name
+
         x1 = int(command_parts[1])  
         x2 = int(command_parts[2])  
     except ValueError:
@@ -486,10 +488,6 @@ def roll_command(message):
         bot.reply_to(message, "x1 должно быть числом от 1 до 6.", parse_mode='Markdown')
         return
 
-    user_id = message.from_user.id
-    username = message.from_user.first_name
-
-    
     with sqlite3.connect('praise.db') as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT shards FROM users WHERE user_id = ?', (user_id,))
