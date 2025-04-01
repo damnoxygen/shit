@@ -209,7 +209,7 @@ def reward_command(message):
                            (user_id, message.from_user.first_name, 150, 0))
 
         
-        cursor.execute('UPDATE users SET shards = shards + 5000, last_reward_time = ? WHERE user_id = ?', (current_time, user_id))
+        cursor.execute('UPDATE users SET shards = shards + 10000, last_reward_time = ? WHERE user_id = ?', (current_time, user_id))
         conn.commit()
 
         bot.send_message(
