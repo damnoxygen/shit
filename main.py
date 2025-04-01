@@ -458,6 +458,76 @@ def add_to_db_command(message):
         cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (shards_change, target_user_id))
         conn.commit()
 
+@bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('ролл'))
+def roll_command(message):
+    command_parts = message.text.split()
+
+    if len(command_parts) != 4:
+        bot.reply_to(message, "Используй формат: `ролл x1 x2 x3`", parse_mode='Markdown')
+        return
+
+    try:
+        x1 = int(command_parts[1])  
+        x2 = int(command_parts[2])  
+        x3 = float(command_parts[3])  
+    except ValueError:
+        bot.reply_to(message, "Убедись, что x1, x2 и x3 — числа. Формат: `ролл x1 x2 x3`", parse_mode='Markdown')
+        return
+
+    if x1 < 1 or x1 > 6:
+        bot.reply_to(message, "x1 должно быть числом от 1 до 6.", parse_mode='Markdown')
+        return
+
+    if x3 < 1 or x3 > 3:
+        bot.reply_to(message, "x3 должно быть коэффициентом от 1 до 3.", parse_mode='Markdown')
+        return
+
+    user_id = message.from_user.id
+    username = message.from_user.first_name
+
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        user_shards = result[0] if result else 0
+
+    if x2 > user_shards:
+        bot.reply_to(message, f"У тебя недостаточно осколков. Твой баланс: {user_shards}.", parse_mode='Markdown')
+        return
+
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET shards = shards - ? WHERE user_id = ?', (x2, user_id))
+        conn.commit()
+
+    
+    dice_message = bot.send_dice(message.chat.id, emoji="🎲")
+    dice_value = dice_message.dice.value
+
+    
+    time.sleep(2.5)
+
+    
+    if dice_value == x1:
+        winnings = int(x2 * x3)
+        with sqlite3.connect('praise.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
+            conn.commit()
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=f"*🎲 Выпало {dice_value}! Ты выиграл {winnings} осколков*",
+            parse_mode='Markdown'
+        )
+    else:
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=f"*🎲 Выпало {dice_value}. Ты проиграл {x2} осколков.*",
+            parse_mode='Markdown'
+        )
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
