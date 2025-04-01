@@ -516,7 +516,6 @@ def roll_command(message):
             text=f"*🎲 ✅* [{message.from_user.first_name}](tg://user?id={user_id}) *Выпало {dice_value}! Ты выиграл {winnings} осколков*",
             parse_mode='Markdown'
         )
-    
     else:
         bot.send_message(
             chat_id=message.chat.id,
@@ -566,11 +565,11 @@ def coin_flip_command(message):
     initial_message = bot.reply_to(message, "*Монетка в воздухе... 🪙*", parse_mode="Markdown")
     time.sleep(2.5)
 
-    
     result = random.choices(["орел", "решка", "ребро"], weights=[42.5, 42.5, 15], k=1)[0]
 
     if result == choice:
         winnings = bet * 3
+        display = bet * 2
         with sqlite3.connect('praise.db') as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
@@ -578,7 +577,7 @@ def coin_flip_command(message):
         bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=initial_message.message_id,
-            text=f"🪙 ✅ [{message.from_user.first_name}](tg://user?id={user_id}) *Монетка показала {result}, ты выиграл {winnings} осколков*",
+            text=f"🪙 ✅ [{message.from_user.first_name}](tg://user?id={user_id}) *Монетка показала {result}, ты выиграл {display} осколков*",
             parse_mode='Markdown'
         )
     elif result == "ребро":
