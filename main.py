@@ -570,7 +570,7 @@ def coin_flip_command(message):
     result = random.choices(["орел", "решка", "ребро"], weights=[42.5, 42.5, 15], k=1)[0]
 
     if result == choice:
-        winnings = bet * 2
+        winnings = bet * 3
         with sqlite3.connect('praise.db') as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
