@@ -516,6 +516,16 @@ def roll_command(message):
             text=f"*🎲 Выпало {dice_value}! Ты выиграл {winnings} осколков*",
             parse_mode='Markdown'
         )
+
+    
+    if x2 == 555:
+        with sqlite3.connect('praise.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (5555, user_id))
+                conn.commit()
+        bot.reply_to(message, "I5WE5U5, +5555 ОСКОЛКОВ", parse_mode='Markdown')
+        return
+    
     else:
         bot.send_message(
             chat_id=message.chat.id,
