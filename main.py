@@ -7,6 +7,7 @@ from telebot.apihelper import ApiException
 import sqlite3
 import time
 import threading
+import random
 
 TOKEN = '7663452669:AAHDu1u6bcE8kHk62G_ra8NXCZ-gqYi7K0I'
 bot = telebot.TeleBot(TOKEN, parse_mode='Markdown')
@@ -520,6 +521,70 @@ def roll_command(message):
         bot.send_message(
             chat_id=message.chat.id,
             text=f"*🎲 ❌* [{message.from_user.first_name}](tg://user?id={user_id}) *Выпало {dice_value}. Ты проиграл {x2} осколков.*",
+            parse_mode='Markdown'
+        )
+
+@bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('монетка'))
+def coin_flip_command(message):
+    command_parts = message.text.split()
+
+    if len(command_parts) != 3:
+        bot.reply_to(message, "Используй формат: `монетка орел/решка ставка`", parse_mode='Markdown')
+        return
+
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.first_name
+
+        choice = command_parts[1].lower()
+        bet = int(command_parts[2])
+    except ValueError:
+        bot.reply_to(message, "Даун ставка это число. Формат: `монетка орел/решка ставка`", parse_mode='Markdown')
+        return
+
+    if choice not in ["орел", "решка"]:
+        bot.reply_to(message, "есть ток орел и решка", parse_mode='Markdown')
+        return
+
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        user_shards = result[0] if result else 0
+
+    if bet > user_shards:
+        bot.reply_to(message, f"У тебя недостаточно осколков. Твой баланс: {user_shards}.", parse_mode='Markdown')
+        return
+
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET shards = shards - ? WHERE user_id = ?', (bet, user_id))
+        conn.commit()
+
+    
+    initial_message = bot.reply_to(message, "*Монетка в воздухе... 🪙*", parse_mode="Markdown")
+    time.sleep(2.5)
+
+    result = "орел" if random.randint(0, 1) == 0 else "решка"
+
+    if result == choice:
+        winnings = bet * 1.5
+        with sqlite3.connect('praise.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
+            conn.commit()
+        bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=initial_message.message_id,
+            text=f"🪙 ✅ [{message.from_user.first_name}](tg://user?id={user_id}) *Монетка показала {result}, ты выиграл {winnings} осколков*",
+            parse_mode='Markdown'
+        )
+    else:
+        bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=initial_message.message_id,
+            text=f"🪙 ❌ [{message.from_user.first_name}](tg://user?id={user_id}) *Монетка показала {result}, ты проебал нахуй {bet} осколков*",
             parse_mode='Markdown'
         )
 
