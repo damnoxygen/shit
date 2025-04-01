@@ -507,13 +507,15 @@ def roll_command(message):
 
     if dice_value == x1:
         winnings = int(x2 * 6)
+        display = int(x2 * 5)
+
         with sqlite3.connect('praise.db') as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
             conn.commit()
         bot.send_message(
             chat_id=message.chat.id,
-            text=f"*🎲 ✅* [{message.from_user.first_name}](tg://user?id={user_id}) *Выпало {dice_value}! Ты выиграл {winnings} осколков*",
+            text=f"*🎲 ✅* [{message.from_user.first_name}](tg://user?id={user_id}) *Выпало {dice_value}! Ты выиграл {display} осколков*",
             parse_mode='Markdown'
         )
     else:
