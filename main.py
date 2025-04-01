@@ -518,7 +518,7 @@ def roll_command(message):
         )
 
     
-    if x2 == 555:
+    if x1 == 555:
         with sqlite3.connect('praise.db') as conn:
                 cursor = conn.cursor()
                 cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (5555, user_id))
