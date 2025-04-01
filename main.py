@@ -105,7 +105,7 @@ def create_praise_image(praising_user, original_sender):
         return None
 
 def notify_reward_ready(user_id):
-    time.sleep(21600)
+    time.sleep(5400)
     try:
         bot.send_sticker(user_id, "CAACAgIAAxkBAAEONQABZ-rDQ37YCOEFEGuOdo3YkpC9YtIAAgJaAAI-93hJoohQr8u1aOk2BA")
         bot.send_message(user_id, "ало пр у тя награда откатилась забери")
@@ -196,8 +196,8 @@ def reward_command(message):
 
         if result:
             last_reward_time = result[0] if result[0] else 0
-            if current_time - last_reward_time < 21600:
-                remaining_time = 21600 - (current_time - last_reward_time)
+            if current_time - last_reward_time < 5400:
+                remaining_time = 5400 - (current_time - last_reward_time)
                 hours = remaining_time // 3600
                 minutes = (remaining_time % 3600) // 60
                 bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONPhn6r8RcvQ75cIHzxyTJnFhzN-nwwACPEoAAh_rEEsFfetMdwRONTYE")
@@ -348,7 +348,7 @@ def show_user_praise_count(message):
 
 @bot.message_handler(commands=['patch'])
 def patch_command(message):
-    bot.send_message(message.chat.id, "*Патч v1.1 — крупные изменения:*\n\n`+ Доля осколков за сообщение увеличена с 0.75 до 1.`\n`- Команда \"мои осколки\" удалена.`\n`+ Добавлена команда \"мой профиль\" что заменяет мои осколки.`\n`+ Команде \"награда\" добавлено уведомление в ЛС о откате команды.`\n`+ Добавлены пиздатейшие вставки.`\n`+ Исправлен баг при котором типы не засчитывались`\n`+ Добавлена команда \"отправить\" для отправки осколков.`\n\n*Фиспект пидорас ебаный*", parse_mode='Markdown')
+    bot.send_message(message.chat.id, "*Изменения баланса:*\n\n`+ Кулдаун награды уменьшен с 6 часов до 1.5`\n`+ Удалён коэфициент который надо указывать в ролле. Теперь он всегда равен 5.`\n`+ Кулдаун награды у всех пользователей был сброшен.`", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('отправить'))
 def send_shards(message):
@@ -462,24 +462,19 @@ def add_to_db_command(message):
 def roll_command(message):
     command_parts = message.text.split()
 
-    if len(command_parts) != 4:
-        bot.reply_to(message, "Используй формат: `ролл x1 x2 x3`", parse_mode='Markdown')
+    if len(command_parts) != 3:
+        bot.reply_to(message, "Используй формат: `ролл число ставка`", parse_mode='Markdown')
         return
 
     try:
         x1 = int(command_parts[1])  
         x2 = int(command_parts[2])  
-        x3 = float(command_parts[3])  
     except ValueError:
-        bot.reply_to(message, "Убедись, что x1, x2 и x3 — числа. Формат: `ролл x1 x2 x3`", parse_mode='Markdown')
+        bot.reply_to(message, "Убедись, что x1 и x2 — числа. Формат: `ролл число ставка`", parse_mode='Markdown')
         return
 
     if x1 < 1 or x1 > 6:
         bot.reply_to(message, "x1 должно быть числом от 1 до 6.", parse_mode='Markdown')
-        return
-
-    if x3 < 1 or x3 > 3:
-        bot.reply_to(message, "x3 должно быть коэффициентом от 1 до 3.", parse_mode='Markdown')
         return
 
     user_id = message.from_user.id
@@ -511,7 +506,7 @@ def roll_command(message):
 
     
     if dice_value == x1:
-        winnings = int(x2 * x3)
+        winnings = int(x2 * 5)
         with sqlite3.connect('praise.db') as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
@@ -527,6 +522,17 @@ def roll_command(message):
             text=f"*🎲 Выпало {dice_value}. Ты проиграл {x2} осколков.*",
             parse_mode='Markdown'
         )
+
+@bot.message_handler(commands=['set0'])
+def reset_reward_cooldown(message):
+    try:
+        with sqlite3.connect('praise.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET last_reward_time = 0')
+            conn.commit()
+        bot.reply_to(message, "КД награды для всех пользователей успешно сброшено!")
+    except Exception as e:
+        bot.reply_to(message, f"Произошла ошибка при сбросе КД: {e}")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
