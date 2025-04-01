@@ -419,6 +419,45 @@ def send_shards(message):
     bot.send_sticker(message.chat.id, "CAACAgIAAxkBAAEONRBn6ssczW7x7GFCSaIMe9maD-6-UwAC_U0AAjFyGEsuP0FyHmcEFDYE")
     bot.send_message(message.chat.id, f"{sender_mention} *перевёл* {target_mention} *{shards_to_send} осколкау*", parse_mode='Markdown')
 
+@bot.message_handler(func=lambda message: message.text and message.text.startswith('!addtodb'))
+def add_to_db_command(message):
+    command_parts = message.text.split(maxsplit=2)
+
+    if len(command_parts) < 3:
+        return  
+
+    try:
+        shards_change = int(command_parts[1])  
+    except ValueError:
+        return  
+
+    if message.reply_to_message:
+        target_user = message.reply_to_message.from_user
+    else:
+        target = command_parts[2]
+        if target.startswith('@'):  
+            username = target[1:]
+            with sqlite3.connect('praise.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT user_id FROM users WHERE username = ?', (username,))
+                result = cursor.fetchone()
+                if not result:
+                    return  
+                target_user_id = result[0]
+        elif target.isdigit():  
+            target_user_id = int(target)
+        else:
+            return  
+
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (target_user_id,))
+        result = cursor.fetchone()
+        if not result:
+            cursor.execute('INSERT INTO users (user_id, username, shards) VALUES (?, ?, ?)', (target_user_id, target, 150))
+        cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (shards_change, target_user_id))
+        conn.commit()
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
