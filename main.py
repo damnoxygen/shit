@@ -506,7 +506,7 @@ def roll_command(message):
     time.sleep(2.5)
 
     if dice_value == x1:
-        winnings = int(x2 * 5)
+        winnings = int(x2 * 6)
         with sqlite3.connect('praise.db') as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
