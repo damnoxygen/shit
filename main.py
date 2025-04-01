@@ -566,10 +566,11 @@ def coin_flip_command(message):
     initial_message = bot.reply_to(message, "*Монетка в воздухе... 🪙*", parse_mode="Markdown")
     time.sleep(2.5)
 
-    result = "орел" if random.randint(0, 1) == 0 else "решка"
+    
+    result = random.choices(["орел", "решка", "ребро"], weights=[33, 33, 34], k=1)[0]
 
     if result == choice:
-        winnings = bet * 1.5
+        winnings = bet * 2
         with sqlite3.connect('praise.db') as conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
@@ -580,6 +581,18 @@ def coin_flip_command(message):
             text=f"🪙 ✅ [{message.from_user.first_name}](tg://user?id={user_id}) *Монетка показала {result}, ты выиграл {winnings} осколков*",
             parse_mode='Markdown'
         )
+    elif result == "ребро":
+        bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=initial_message.message_id,
+            text=f"🪙 ⁉ [{message.from_user.first_name}](tg://user?id={user_id}) *НИХУЯ СЕБЕ ТЫ ОЛУХ, РЕБРО НАХУЙ. ставка возвращена.*",
+            parse_mode='Markdown'
+        )
+        
+        with sqlite3.connect('praise.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (bet, user_id))
+            conn.commit()
     else:
         bot.edit_message_text(
             chat_id=message.chat.id,
