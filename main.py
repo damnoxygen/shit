@@ -213,7 +213,7 @@ def reward_command(message):
 
         bot.send_message(
             message.chat.id,
-            f"[{message.from_user.first_name}](tg://user?id={user_id}) *залутал свои +500 осколков. Следующая награда через 6 часов*",
+            f"[{message.from_user.first_name}](tg://user?id={user_id}) *залутал свои +500 осколков. Следующая награда через полтора часа*",
             parse_mode='Markdown'
     )
     
@@ -348,7 +348,7 @@ def show_user_praise_count(message):
 
 @bot.message_handler(commands=['patch'])
 def patch_command(message):
-    bot.send_message(message.chat.id, "*Изменения баланса:*\n\n`+ Кулдаун награды уменьшен с 6 часов до 1.5`\n`+ Удалён коэфициент который надо указывать в ролле. Теперь он всегда равен 5.`\n`+ Кулдаун награды у всех пользователей был сброшен.`", parse_mode='Markdown')
+    bot.send_message(message.chat.id, "*Изменения баланса:*\n\n`+ Кулдаун награды уменьшен с полтора часа до 1.5`\n`+ Удалён коэфициент который надо указывать в ролле. Теперь он всегда равен 5.`\n`+ Кулдаун награды у всех пользователей был сброшен.`", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('отправить'))
 def send_shards(message):
