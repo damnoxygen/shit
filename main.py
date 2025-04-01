@@ -567,7 +567,7 @@ def coin_flip_command(message):
     time.sleep(2.5)
 
     
-    result = random.choices(["орел", "решка", "ребро"], weights=[33, 33, 34], k=1)[0]
+    result = random.choices(["орел", "решка", "ребро"], weights=[42.5, 42.5, 15], k=1)[0]
 
     if result == choice:
         winnings = bet * 2
