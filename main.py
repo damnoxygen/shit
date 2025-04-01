@@ -476,13 +476,6 @@ def roll_command(message):
     except ValueError:
         bot.reply_to(message, "Убедись, что x1 и x2 — числа. Формат: `ролл число ставка`", parse_mode='Markdown')
         return
-    if x1 == 555:
-        with sqlite3.connect('praise.db') as conn:
-                cursor = conn.cursor()
-                cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (5555, user_id))
-                conn.commit()
-        bot.reply_to(message, "I5WE5U5, +5555 ОСКОЛКОВ", parse_mode='Markdown')
-        return
     
     if x1 < 1 or x1 > 6:
         bot.reply_to(message, "x1 должно быть числом от 1 до 6.", parse_mode='Markdown')
@@ -511,7 +504,6 @@ def roll_command(message):
     
     time.sleep(2.5)
 
-    
     if dice_value == x1:
         winnings = int(x2 * 5)
         with sqlite3.connect('praise.db') as conn:
@@ -520,14 +512,14 @@ def roll_command(message):
             conn.commit()
         bot.send_message(
             chat_id=message.chat.id,
-            text=f"*🎲 Выпало {dice_value}! Ты выиграл {winnings} осколков*",
+            text=f"*🎲 ✅* [{message.from_user.first_name}](tg://user?id={user_id}) *Выпало {dice_value}! Ты выиграл {winnings} осколков*",
             parse_mode='Markdown'
         )
     
     else:
         bot.send_message(
             chat_id=message.chat.id,
-            text=f"*🎲 Выпало {dice_value}. Ты проиграл {x2} осколков.*",
+            text=f"*🎲 ❌* [{message.from_user.first_name}](tg://user?id={user_id}) *Выпало {dice_value}. Ты проиграл {x2} осколков.*",
             parse_mode='Markdown'
         )
 
