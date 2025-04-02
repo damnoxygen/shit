@@ -525,6 +525,83 @@ def roll_command(message):
             parse_mode='Markdown'
         )
 
+@bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('краш'))
+def crash_game_command(message):
+    command_parts = message.text.split()
+
+    if len(command_parts) != 3:
+        bot.reply_to(message, "Используй формат: `краш ставка кэфф`", parse_mode='Markdown')
+        return
+
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.first_name
+
+        bet = int(command_parts[1])  
+        target_multiplier = float(command_parts[2])  
+    except ValueError:
+        bot.reply_to(message, "Ставка должна быть числом, а кэф — числом с плавающей точкой. Формат: `краш ставка кэфф`", parse_mode='Markdown')
+        return
+
+    if target_multiplier < 1.1:
+        bot.reply_to(message, "Минимальный кэф — 1.1.", parse_mode='Markdown')
+        return
+
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (user_id,))
+        result = cursor.fetchone()
+        user_shards = result[0] if result else 0
+
+    if bet > user_shards:
+        bot.reply_to(message, f"У тебя недостаточно осколков. Твой баланс: {user_shards}.", parse_mode='Markdown')
+        return
+
+    
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET shards = shards - ? WHERE user_id = ?', (bet, user_id))
+        conn.commit()
+
+    
+    initial_message = bot.reply_to(message, "*Игра началась. Кэф: 1.0x*", parse_mode="Markdown")
+
+    
+    current_multiplier = 1.0
+    stop_time = random.uniform(1, 15)  
+    start_time = time.time()
+
+    while time.time() - start_time < stop_time:
+        current_multiplier += 0.5  
+        bot.edit_message_text(
+            chat_id=initial_message.chat.id,
+            message_id=initial_message.message_id,
+            text=f"*{current_multiplier:.1f}x*",
+            parse_mode="Markdown"
+        )
+        time.sleep(2)
+
+    final_multiplier = current_multiplier
+    if abs(final_multiplier - target_multiplier) <= 0.5:  
+        winnings = int(bet * final_multiplier)
+        with sqlite3.connect('praise.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('UPDATE users SET shards = shards + ? WHERE user_id = ?', (winnings, user_id))
+            conn.commit()
+        bot.edit_message_text(
+            chat_id=initial_message.chat.id,
+            message_id=initial_message.message_id,
+            text=f"✅ *Игра окончена. Кэф: {final_multiplier:.1f}x*\n[{message.from_user.first_name}](tg://user?id={user_id}), ты выиграл {winnings} осколков.",
+            parse_mode="Markdown"
+        )
+    else:
+        bot.edit_message_text(
+            chat_id=initial_message.chat.id,
+            message_id=initial_message.message_id,
+            text=f"💥 *Игра окончена. Кэф: {final_multiplier:.1f}x*\n[{message.from_user.first_name}](tg://user?id={user_id}), ты вьебал нахуй {bet} осколков.",
+            parse_mode="Markdown"
+        )
+
 @bot.message_handler(func=lambda message: message.text and message.text.lower().startswith('монетка'))
 def coin_flip_command(message):
     command_parts = message.text.split()
