@@ -568,7 +568,7 @@ def crash_game_command(message):
 
     
     current_multiplier = 1.0
-    stop_time = random.uniform(1, 15)  
+    stop_time = random.uniform(1, 25)  
     start_time = time.time()
 
     while time.time() - start_time < stop_time:
