@@ -690,6 +690,30 @@ def reset_reward_cooldown(message):
     except Exception as e:
         bot.reply_to(message, f"Произошла ошибка при сбросе КД: {e}")
 
+@bot.message_handler(commands=['check'])
+def check_shards(message):
+    if message.reply_to_message:
+        target_user_id = message.reply_to_message.from_user.id
+    else:
+        command_parts = message.text.split(maxsplit=1)
+        if len(command_parts) > 1:
+            target = command_parts[1]
+            if target.startswith('@'):
+                username = target[1:]
+                cursor.execute('SELECT user_id FROM users WHERE username = ?', (username,))
+                result = cursor.fetchone()
+                if result:
+                    target_user_id = result[0]
+            elif target.isdigit():  # Если ID
+                target_user_id = int(target)
+
+    with sqlite3.connect('praise.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT shards FROM users WHERE user_id = ?', (target_user_id,))
+        result = cursor.fetchone()
+        if result:
+            bot.reply_to(message, str(result[0]))
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
