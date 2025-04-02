@@ -9,7 +9,7 @@ import time
 import threading
 import random
 
-TOKEN = '7663452669:AAHDu1u6bcE8kHk62G_ra8NXCZ-gqYi7K0I'
+TOKEN = '7663452669:AAFANW2PDtS2ZvM4ApVZdNoVb0vGVKLZMds'
 bot = telebot.TeleBot(TOKEN, parse_mode='Markdown')
 
 TRIGGER_WORDS = {"тип", "типнуть", "похвала", "похвалить", "типайте"}
